@@ -6,7 +6,7 @@ import {
 } from 'react-dom';
 import targetIsDescendant from './targetIsDescendant';
 
-const makeSureValue = (val, options, props) => options[val] === undefined ? props[val] : options[val];
+const makeSureValue = (val, options, props) => props[val] === undefined ? options[val] : props[val];
 
 export default options => ComposedComponent => {
   return class PortalHoc extends Component {
