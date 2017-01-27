@@ -1,7 +1,7 @@
 # react-portal-hoc
 A HOC that portalizes components
 
-##Installation
+## Installation
 `yarn add react-portal-hoc`
 
 ## What's it do
@@ -14,7 +14,7 @@ This is useful for things like modals, menus, and anything that's tempting you t
 - react-modal: this is just for modals, not great for making custom things like dropdown menus
 - react-gateway: the DX for this is not as friendly as the above 2 
 
-##Usage
+## Usage
 
 ### Stick it around your component
 
@@ -23,45 +23,30 @@ Example:
 ```js
 // in Modal.js
 import portal from 'react-portal-hoc';
-const Modal = (props) => {
-  return <div>Here i am</div>
-};
+const Modal = () => <div>Here i am</div>;
 const options = {
-  // these will get overwritten by the value passed in via props
   escToClose: true,
   clickToClose: false
 };
 export default portal(options)(Modal);
 
 // in Button.js
+// closePortal is automatically provided by the HOC
+const Button = (props) => <button onClick={() => props.closePortal()}>{props.label}</button>;
 
-const Button = (props) => {
-  // closePortal is automatically provided by the HOC
-  const {closePortal, label} = props;
-  const onClick = () => {
-    closePortal();
-  };
-  return <button onClick={onClick}>{label}</button>;
-};
-
-// in statelessComponent.js
-const statelessComponent = (props) => {
-  return (
-    <div>
-      <Modal toggle={<Button label="Click me hard"/>} clickToClose/>
-    </div>
-  )
-}
-
+// in StatelessComponent.js
+// passing in clickToClose here overrides the static option set in Modal.js
+const StatelessComponent = () => <Modal toggle={<Button label="Click me hard"/>} clickToClose/>;
 ```
 
-##API
+## API
 
 ```
 portal(options)(Component)
 ```
 
 Options:
+- `beforeClose`: A function that returns a promise. Useful for closing animations.
 - `clickToClose`: Default is `false`. If true, clicking outside of the portal will close it
 - `clickToEsc`: Default is `false`. If true, hitting Escape will close the portal
 - `toggle`: An element that will toggle the portal popping up or going away. 
@@ -69,6 +54,27 @@ If clicked while the portal is open, the portal will close.
 - `isOpen`: Default is `false`. If you don't provide a `toggle` and want to manually manage the portal, use this.
 While this could be used in conjunction with a `setTimeout`, 
 be warned that if you do, there is a special place in hell for you. 
+
+## FAQ
+
+Q: How do I use this without a toggle?
+A: Use `isOpen` instead of `toggle`.
+
+Q: When the portal is open and they click the toggle again, the portal closes. How can I stop this?
+A: Use `isOpen` instead of `toggle`.
+
+Q: Should I pass things in via props or options?
+A: Pass in default values into options and overrides into props. 
+For example, I have a credit card modal that usually has `clickToClose = true` in the options.
+This is good if they go into their account settings and update their billing info.
+However, if their card gets denied, I'm gonna set the prop `clickToClose = false` because I'm a greedy a-hole.
+
+Q: How do I close the portal by clicking a button on my toggle?
+A: The HOC will add `props.closePortal` to your toggle. Use it.
+
+Q: How can I do animations?
+A: To animate in, just use a keyframe animation or transition. When the component loads, the animation will execute.
+To animate out, use `beforeClose` (you'll probably want to call `setState` or something).
 
 ## License
 

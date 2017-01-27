@@ -6,12 +6,12 @@ import {
 } from 'react-dom';
 import targetIsDescendant from './targetIsDescendant';
 
-const makeSureValue = (val, options, props) => props[val] === undefined ? options[val] : props[val];
+const beforeCloseDefault = () => new Promise((resolve) => setTimeout(() => resolve(), 0));
 
 export default options => ComposedComponent => {
   return class PortalHoc extends Component {
     componentDidMount() {
-      const isOpen = makeSureValue('isOpen', options, this.props);
+      const isOpen = this.makeSureValue('isOpen');
       this.ensurePortalState(isOpen);
     }
 
@@ -29,13 +29,17 @@ export default options => ComposedComponent => {
     ensureClosedPortal = () => {
       if (this.node) {
         const nodeToRemove = this.node;
-        // https://github.com/facebook/react/issues/6232
-        setTimeout(() => unmountComponentAtNode(nodeToRemove), 0);
-        document.body.removeChild(this.node);
         this.portal = null;
         this.node = null;
         this.toggle = null;
         this.handleListeners('remove');
+        const beforeClose = this.makeSureValue('beforeClose') || beforeCloseDefault;
+        beforeClose()
+          .then(() => {
+            // https://github.com/facebook/react/issues/6232
+            unmountComponentAtNode(nodeToRemove);
+            document.body.removeChild(this.node);
+          })
       }
     };
 
@@ -63,8 +67,8 @@ export default options => ComposedComponent => {
     }
 
     handleListeners(type) {
-      const escToClose = makeSureValue('escToClose', options, this.props);
-      const clickToClose = makeSureValue('clickToClose', options, this.props);
+      const escToClose = this.makeSureValue('escToClose');
+      const clickToClose = this.makeSureValue('clickToClose');
       const handle = type === 'add' ? document.addEventListener : document.removeEventListener;
       if (escToClose) {
         handle('keydown', this.handleKeydown);
@@ -90,6 +94,10 @@ export default options => ComposedComponent => {
       }
     };
 
+    makeSureValue(val) {
+      return this.props[val] === undefined ? options[val] : this.props[val];
+    }
+
     togglePortal = () => {
       if (this.node) {
         this.ensureClosedPortal();
@@ -99,7 +107,7 @@ export default options => ComposedComponent => {
     };
 
     render() {
-      const toggle = makeSureValue('toggle', options, this.props);
+      const toggle = this.makeSureValue('toggle');
       if (toggle) {
         const onClick = (e) => {
           if (toggle.props.onClick) {
@@ -108,7 +116,9 @@ export default options => ComposedComponent => {
           // the above click handler might be setting the state for the portal, and setState is async
           setTimeout(() => this.togglePortal(), 0);
         };
-        const ref = (c) => {this.toggle = c};
+        const ref = (c) => {
+          this.toggle = c
+        };
         return cloneElement(toggle, {onClick, ref});
       }
       return null;
