@@ -1,8 +1,8 @@
 import React, {Component, cloneElement} from 'react';
 import {
   findDOMNode,
-  unstable_renderSubtreeIntoContainer as renderSubtreeIntoContainer,
-  unmountComponentAtNode
+  unmountComponentAtNode,
+  unstable_renderSubtreeIntoContainer as renderSubtreeIntoContainer
 } from 'react-dom';
 import targetIsDescendant from './targetIsDescendant';
 
@@ -26,27 +26,32 @@ export default options => ComposedComponent => {
       this.ensureClosedPortal();
     }
 
-    ensureClosedPortal() {
+    ensureClosedPortal = () => {
       if (this.node) {
-        unmountComponentAtNode(this.node);
+        const nodeToRemove = this.node;
+        // https://github.com/facebook/react/issues/6232
+        setTimeout(() => unmountComponentAtNode(nodeToRemove), 0);
         document.body.removeChild(this.node);
         this.portal = null;
         this.node = null;
+        this.toggle = null;
         this.handleListeners('remove');
       }
-    }
+    };
 
-    ensureOpenPortal() {
+    ensureOpenPortal = () => {
       if (!this.node) {
         this.node = document.createElement('div');
         document.body.appendChild(this.node);
-        this.portal = renderSubtreeIntoContainer(
-          this,
-          <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal}/>,
-          this.node
-        );
         this.handleListeners('add');
       }
+
+      // we could make some performance gains by doing a shallow equal on the props
+      this.portal = renderSubtreeIntoContainer(
+        this,
+        <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal}/>,
+        this.node
+      );
     }
 
     ensurePortalState(isOpen) {
@@ -70,37 +75,39 @@ export default options => ComposedComponent => {
       }
     }
 
-    handleDocumentClick(e) {
+    handleDocumentClick = (e) => {
       // close as long as they didn't click the toggle
-      if (!targetIsDescendant(e.target, findDOMNode(this.portal))) {
+      if (!targetIsDescendant(e.target, findDOMNode(this.portal)) && !targetIsDescendant(e.target, findDOMNode(this.toggle))) {
         this.ensureClosedPortal();
       }
-    }
+    };
 
-    handleKeydown(e) {
+    handleKeydown = (e) => {
       if (e.key === 'Escape') {
         this.ensureClosedPortal();
       }
-    }
+    };
 
-    togglePortal() {
+    togglePortal = () => {
       if (this.node) {
         this.ensureClosedPortal();
       } else {
         this.ensureOpenPortal();
       }
-    }
+    };
 
     render() {
       const toggle = makeSureValue('toggle', options, this.props);
       if (toggle) {
         const onClick = (e) => {
-          this.togglePortal();
           if (toggle.props.onClick) {
             toggle.props.onClick(e);
           }
+          // the above click handler might be setting the state for the portal, and setState is async
+          setTimeout(() => this.togglePortal(), 0);
         };
-        return cloneElement(toggle, {onClick});
+        const ref = (c) => {this.toggle = c};
+        return cloneElement(toggle, {onClick, ref});
       }
       return null;
     }

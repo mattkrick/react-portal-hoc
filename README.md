@@ -31,13 +31,24 @@ const options = {
   escToClose: true,
   clickToClose: false
 };
-return portal(options)(Modal);
+export default portal(options)(Modal);
+
+// in Button.js
+
+const Button = (props) => {
+  // closePortal is automatically provided by the HOC
+  const {closePortal, label} = props;
+  const onClick = () => {
+    closePortal();
+  };
+  return <button onClick={onClick}>{label}</button>;
+};
 
 // in statelessComponent.js
 const statelessComponent = (props) => {
   return (
     <div>
-      <Modal toggle={<Button>Click me hard</Button>} clickToClose/>
+      <Modal toggle={<Button label="Click me hard"/>} clickToClose/>
     </div>
   )
 }
@@ -53,7 +64,8 @@ portal(options)(Component)
 Options:
 - `clickToClose`: Default is `false`. If true, clicking outside of the portal will close it
 - `clickToEsc`: Default is `false`. If true, hitting Escape will close the portal
-- `toggle`: An element that will toggle the portal popping up or going away.
+- `toggle`: An element that will toggle the portal popping up or going away. 
+If clicked while the portal is open, the portal will close.
 - `isOpen`: Default is `false`. If you don't provide a `toggle` and want to manually manage the portal, use this.
 While this could be used in conjunction with a `setTimeout`, 
 be warned that if you do, there is a special place in hell for you. 
