@@ -23,6 +23,7 @@ Example:
 ```js
 // in Modal.js
 import portal from 'react-portal-hoc';
+// isClosing is automatically provided by the HOC
 const Modal = () => <div className={props.isClosing ? 'closing' : ''}>Here i am</div>;
 const options = {
   animated: true,
@@ -47,8 +48,9 @@ portal(options)(Component)
 ```
 
 Options:
-- `animation`: Default is `false`. If `true`, it will close after the last css animation completes.
-If it's a promise, it will execute after the promise resolves.
+- `animated`: Default is `false`. If `true`, it will close after the last css animation completes.
+For non-CSS animations, you may also pass in a callback that returns a new promise.
+For example: `options.animated = (node) => new Promise(resolve => setTimeout(() => resolve(), 300))`
 - `clickToClose`: Default is `false`. If `true`, clicking outside of the portal will close it
 - `clickToEsc`: Default is `false`. If `true`, hitting Escape will close the portal
 - `toggle`: An element that will toggle the portal popping up or going away. 
@@ -62,11 +64,11 @@ be warned that if you do, there is a special place in hell for you.
 Q: How do I use this without a toggle?
 A: Use `isOpen` instead of `toggle`.
 
-Q: When the portal is open and they click the toggle again, the portal closes. How can I stop this?
-A: Use `isOpen` instead of `toggle`.
+Q: When the portal is open and they click the toggle again, the portal closes. I want it to do nothing.
+A: Your UX is bad and you should feel bad. Ugh, fine. Use `isOpen` instead of `toggle`.
 
 Q: Should I pass things in via props or options?
-A: Pass in default values into options and overrides into props. 
+A: Pass default (static) values into options and overrides into props. 
 For example, I have a credit card modal that usually has `clickToClose = true` in the options.
 This is good if they go into their account settings and update their billing info.
 However, if their card gets denied, I'm gonna set the prop `clickToClose = false` because I'm a greedy a-hole.
@@ -80,11 +82,9 @@ When the component loads, the animation will execute.
 Animating out is more difficult because we want to signal the close, animate the close, 
 then execute the close after the animation completes.
 When a close signal is received, the HOC will add `props.isClosing` to your portal.
-You can use that to add/remove classnames.
+You can use that to add/remove classnames (see example above).
 If you pass in `options.animated = true`, the HOC will automatically close after the css animations complete.
 If you don't use css animations, then you can pass in a promise.
-For example if you want to close after 300ms:
-`options.animated = (node) => new Promise(resolve => setTimeout(() => resolve(), 300))`
 
 ## License
 
