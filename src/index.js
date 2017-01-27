@@ -52,7 +52,7 @@ export default options => ComposedComponent => {
         <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal}/>,
         this.node
       );
-    }
+    };
 
     ensurePortalState(isOpen) {
       if (isOpen) {
@@ -76,9 +76,11 @@ export default options => ComposedComponent => {
     }
 
     handleDocumentClick = (e) => {
-      // close as long as they didn't click the toggle
-      if (!targetIsDescendant(e.target, findDOMNode(this.portal)) && !targetIsDescendant(e.target, findDOMNode(this.toggle))) {
-        this.ensureClosedPortal();
+      // close as long as they didn't click the modal or the toggle
+      if (!targetIsDescendant(e.target, findDOMNode(this.portal))) {
+        if (!this.toggle || !targetIsDescendant(e.target, findDOMNode(this.toggle))) {
+          this.ensureClosedPortal();
+        }
       }
     };
 
