@@ -23,8 +23,9 @@ Example:
 ```js
 // in Modal.js
 import portal from 'react-portal-hoc';
-const Modal = () => <div>Here i am</div>;
+const Modal = () => <div className={props.isClosing ? 'closing' : ''}>Here i am</div>;
 const options = {
+  animated: true,
   escToClose: true,
   clickToClose: false
 };
@@ -46,9 +47,10 @@ portal(options)(Component)
 ```
 
 Options:
-- `beforeClose`: A function that returns a promise. Useful for closing animations.
-- `clickToClose`: Default is `false`. If true, clicking outside of the portal will close it
-- `clickToEsc`: Default is `false`. If true, hitting Escape will close the portal
+- `animation`: Default is `false`. If `true`, it will close after the last css animation completes.
+If it's a promise, it will execute after the promise resolves.
+- `clickToClose`: Default is `false`. If `true`, clicking outside of the portal will close it
+- `clickToEsc`: Default is `false`. If `true`, hitting Escape will close the portal
 - `toggle`: An element that will toggle the portal popping up or going away. 
 If clicked while the portal is open, the portal will close.
 - `isOpen`: Default is `false`. If you don't provide a `toggle` and want to manually manage the portal, use this.
@@ -73,8 +75,16 @@ Q: How do I close the portal by clicking a button on my toggle?
 A: The HOC will add `props.closePortal` to your toggle. Use it.
 
 Q: How can I do animations?
-A: To animate in, just use a keyframe animation or transition. When the component loads, the animation will execute.
-To animate out, use `beforeClose` (you'll probably want to call `setState` or something).
+A: To animate in, just use a keyframe animation or `componentDidMount`. 
+When the component loads, the animation will execute.
+Animating out is more difficult because we want to signal the close, animate the close, 
+then execute the close after the animation completes.
+When a close signal is received, the HOC will add `props.isClosing` to your portal.
+You can use that to add/remove classnames.
+If you pass in `options.animated = true`, the HOC will automatically close after the css animations complete.
+If you don't use css animations, then you can pass in a promise.
+For example if you want to close after 300ms:
+`options.animated = (node) => new Promise(resolve => setTimeout(() => resolve(), 300))`
 
 ## License
 

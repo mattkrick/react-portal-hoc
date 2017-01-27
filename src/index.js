@@ -6,8 +6,6 @@ import {
 } from 'react-dom';
 import targetIsDescendant from './targetIsDescendant';
 
-const beforeCloseDefault = () => new Promise((resolve) => setTimeout(() => resolve(), 0));
-
 export default options => ComposedComponent => {
   return class PortalHoc extends Component {
     componentDidMount() {
@@ -28,18 +26,40 @@ export default options => ComposedComponent => {
 
     ensureClosedPortal = () => {
       if (this.node) {
-        const nodeToRemove = this.node;
-        this.portal = null;
-        this.node = null;
-        this.toggle = null;
-        this.handleListeners('remove');
-        const beforeClose = this.makeSureValue('beforeClose') || beforeCloseDefault;
-        beforeClose()
-          .then(() => {
-            // https://github.com/facebook/react/issues/6232
-            unmountComponentAtNode(nodeToRemove);
-            document.body.removeChild(this.node);
+        this.portal = renderSubtreeIntoContainer(
+          this,
+          <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal} isClosing={true}/>,
+          this.node
+        );
+        this.handleListeners('removeEventListener');
+        const animated = this.makeSureValue('animated');
+        if (!animated) {
+          // unmount right away if there is no animation to wait for
+          this.unmount(this.node);
+        } else if (animated === true) {
+          // listen for keyframe animations and unmount after the last one finished
+          let animationCount = 0;
+          const incCount = () => {
+            animationCount++;
+          };
+          const maybeRemoveNode = () => {
+            if (animationCount <= 1) {
+              this.node.removeEventListener('animationend', maybeRemoveNode);
+              this.node.removeEventListener('animationstart', incCount);
+              this.unmount(this.node);
+            } else {
+              animationCount--;
+            }
+          };
+          this.node.addEventListener('animationstart', incCount);
+          this.node.addEventListener('animationend', maybeRemoveNode);
+        } else if (animated) {
+          // let the user-defined promise tell us when to ummount
+          animated(this.node)
+            .then(() => {
+            this.unmount();
           })
+        }
       }
     };
 
@@ -47,7 +67,7 @@ export default options => ComposedComponent => {
       if (!this.node) {
         this.node = document.createElement('div');
         document.body.appendChild(this.node);
-        this.handleListeners('add');
+        this.handleListeners('addEventListener');
       }
 
       // we could make some performance gains by doing a shallow equal on the props
@@ -66,10 +86,11 @@ export default options => ComposedComponent => {
       }
     }
 
-    handleListeners(type) {
+    handleListeners(method) {
       const escToClose = this.makeSureValue('escToClose');
       const clickToClose = this.makeSureValue('clickToClose');
-      const handle = type === 'add' ? document.addEventListener : document.removeEventListener;
+
+      const handle = document[method];
       if (escToClose) {
         handle('keydown', this.handleKeydown);
       }
@@ -104,6 +125,14 @@ export default options => ComposedComponent => {
       } else {
         this.ensureOpenPortal();
       }
+    };
+
+    unmount = (nodeToRemove) => {
+      unmountComponentAtNode(nodeToRemove);
+      document.body.removeChild(nodeToRemove);
+      this.portal = null;
+      this.node = null;
+      this.toggle = null;
     };
 
     render() {
