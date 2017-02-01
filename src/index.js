@@ -6,16 +6,17 @@ import {
 } from 'react-dom';
 import targetIsDescendant from './targetIsDescendant';
 
-export default options => ComposedComponent => {
+export default (options = {}) => ComposedComponent => {
   return class PortalHoc extends Component {
     componentDidMount() {
       const isOpen = this.makeSureValue('isOpen');
       this.ensurePortalState(isOpen);
     }
 
-    componentWillReceiveProps(nextProps) {
-      const {isOpen} = nextProps;
-      if (isOpen !== this.props.isOpen) {
+    // use componentDidUpdate because variables might get passed to the modal & those should be the latest
+    componentDidUpdate(prevProps) {
+      const {isOpen} = this.props;
+      if (prevProps.isOpen !== isOpen) {
         this.ensurePortalState(isOpen);
       }
     }
@@ -27,39 +28,39 @@ export default options => ComposedComponent => {
     ensureClosedPortal = () => {
       if (this.node && !this.isClosing) {
         this.isClosing = true;
+        this.handleListeners('removeEventListener');
+        const closeAfter = this.makeSureValue('closeAfter');
         this.portal = renderSubtreeIntoContainer(
           this,
-          <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal} isClosing={true}/>,
+          <ComposedComponent
+            {...this.props}
+            closeAfter={closeAfter}
+            closePortal={this.ensureClosedPortal}
+            isClosing={true}
+          />,
           this.node
         );
-        this.handleListeners('removeEventListener');
-        const animated = this.makeSureValue('animated');
-        if (!animated) {
+        if (closeAfter === undefined || closeAfter === null) {
           // unmount right away if there is no animation to wait for
-          this.unmount(this.node);
-        } else if (animated === true) {
-          // listen for keyframe animations and unmount after the last one finished
-          let animationCount = 0;
-          const incCount = () => {
-            animationCount++;
-          };
-          const maybeRemoveNode = () => {
-            if (animationCount <= 1) {
-              this.node.removeEventListener('animationend', maybeRemoveNode);
-              this.node.removeEventListener('animationstart', incCount);
-              this.unmount(this.node);
-            } else {
-              animationCount--;
-            }
-          };
-          this.node.addEventListener('animationstart', incCount);
-          this.node.addEventListener('animationend', maybeRemoveNode);
-        } else if (animated) {
-          // let the user-defined promise tell us when to ummount
-          animated(this.node)
-            .then(() => {
+          this.unmount();
+        } else if (closeAfter === 'animation') {
+          // listen for keyframe animations and unmount after it finishes
+          const removeNode = () => {
+            this.node.removeEventListener('animationend', removeNode);
             this.unmount();
-          })
+          };
+          this.node.addEventListener('animationend', removeNode);
+        } else if (typeof closeAfter === 'function') {
+          // let the user-defined promise tell us when to ummount
+          closeAfter(this.node)
+            .then(() => {
+              this.unmount();
+            })
+        } else {
+          const delay = parseInt(closeAfter) || 0;
+          setTimeout(() => {
+            this.unmount()
+          }, delay);
         }
       }
     };
@@ -72,9 +73,14 @@ export default options => ComposedComponent => {
       }
 
       // we could make some performance gains by doing a shallow equal on the props
+      const closeAfter = this.makeSureValue('closeAfter');
       this.portal = renderSubtreeIntoContainer(
         this,
-        <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal}/>,
+        <ComposedComponent
+          {...this.props}
+          closeAfter={closeAfter}
+          closePortal={this.ensureClosedPortal}
+        />,
         this.node
       );
     };
@@ -128,9 +134,9 @@ export default options => ComposedComponent => {
       }
     };
 
-    unmount = (nodeToRemove) => {
-      unmountComponentAtNode(nodeToRemove);
-      document.body.removeChild(nodeToRemove);
+    unmount = () => {
+      unmountComponentAtNode(this.node);
+      document.body.removeChild(this.node);
       this.isClosing = null;
       this.portal = null;
       this.node = null;
