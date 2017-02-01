@@ -25,7 +25,8 @@ export default options => ComposedComponent => {
     }
 
     ensureClosedPortal = () => {
-      if (this.node) {
+      if (this.node && !this.isClosing) {
+        this.isClosing = true;
         this.portal = renderSubtreeIntoContainer(
           this,
           <ComposedComponent {...this.props} closePortal={this.ensureClosedPortal} isClosing={true}/>,
@@ -130,6 +131,7 @@ export default options => ComposedComponent => {
     unmount = (nodeToRemove) => {
       unmountComponentAtNode(nodeToRemove);
       document.body.removeChild(nodeToRemove);
+      this.isClosing = null;
       this.portal = null;
       this.node = null;
       this.toggle = null;
