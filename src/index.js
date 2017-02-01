@@ -16,9 +16,7 @@ export default (options = {}) => ComposedComponent => {
     // use componentDidUpdate because variables might get passed to the modal & those should be the latest
     componentDidUpdate(prevProps) {
       const {isOpen} = this.props;
-      if (prevProps.isOpen !== isOpen) {
-        this.ensurePortalState(isOpen);
-      }
+      this.ensurePortalState(isOpen);
     }
 
     componentWillUnmount() {
