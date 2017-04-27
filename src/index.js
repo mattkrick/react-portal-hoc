@@ -69,6 +69,8 @@ export default (options = {}) => ComposedComponent => {
     ensureOpenPortal = () => {
       if (!this.node) {
         this.node = document.createElement('div');
+        this.node.id = this.makeSureValue('nodeId') || 'portal';
+        this.node.setAttribute('react-portal', '');
         document.body.appendChild(this.node);
         this.handleListeners('addEventListener');
       }

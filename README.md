@@ -60,6 +60,10 @@ If clicked while the portal is open, the portal will close.
 - `isOpen`: Default is `false`. If you don't provide a `toggle` and want to manually manage the portal, use this.
 While this could be used in conjunction with a `setTimeout`, 
 be warned that if you do, there is a special place in hell for you. 
+- `nodeId`: Default is `'portal'`. 
+An `id` to assign to the DOM node. 
+Useful if you need to break out of the VDOM and traverse the DOM tree (eg see if a target is a descendant of a portal)
+The DOM element is also decorated with a `react-portal` attribute
 
 ## FAQ
 
