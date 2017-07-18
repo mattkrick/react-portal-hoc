@@ -100,7 +100,7 @@ export default (options = {}) => ComposedComponent => {
       const escToClose = this.makeSureValue('escToClose');
       const clickToClose = this.makeSureValue('clickToClose');
 
-      const handle = document[method];
+      const handle = document[method].bind(document);
       if (escToClose) {
         handle('keydown', this.handleKeydown);
       }
