@@ -16,7 +16,8 @@ export default (options = {}) => ComposedComponent => {
     // use componentDidUpdate because variables might get passed to the modal & those should be the latest
     componentDidUpdate() {
       const {isOpen} = this.props;
-      const openState = this.toggle ? Boolean(this.node) : isOpen;
+      const keepOpen = this.isClosing ? false : isOpen;
+      const openState = this.toggle ? Boolean(this.node) : keepOpen;
       // we can't wrap this in a prevProps.isOpen !== this.props.isOpen conditional
       // because it's possible data changed without an unmount
       this.ensurePortalState(openState);
@@ -138,12 +139,15 @@ export default (options = {}) => ComposedComponent => {
     };
 
     unmount = () => {
-      unmountComponentAtNode(this.node);
-      document.body.removeChild(this.node);
-      this.isClosing = null;
+      const node = this.node;
       this.portal = null;
       this.node = null;
       this.toggle = null;
+      this.isClosing = null;
+
+      // calling this will cause a rerender, which could cause a re-open if this.node is not null
+      unmountComponentAtNode(node);
+      document.body.removeChild(node);
     };
 
     render() {
